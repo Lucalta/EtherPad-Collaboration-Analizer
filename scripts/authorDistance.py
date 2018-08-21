@@ -1,12 +1,10 @@
 import json
 import os
 
-filepath = "C:\\Users\\Luca\\Desktop\\1\\0g43ShqOdv.txt"  # Add here the path to the file to be parsed
-outputpath = "C:\\Users\\Luca\\Desktop\\2\\0g43ShqOdv.txt"
 
-dirinputpath = "C:\\Users\\Luca\\Desktop\\1"
-diroutputpath = "C:\\Users\\Luca\\Desktop\\2"
-
+dirinputpath = "C:\\Users\\Luca\\Desktop\\1" # Add here the path to the folder with the files to be parsed
+diroutputpath = "C:\\Users\\Luca\\Desktop\\2" # Add here the path to the output folder
+ 
 class Matrix:
 
     @staticmethod
@@ -147,10 +145,5 @@ def elaboratefile(filepath, outputpath):
         timematrix.printtofile(outputpath + "-time.csv")
         spacematrix.printtofile(outputpath + "-space.csv")
 
-        # print(distancematrix.lists)
-        # print(timematrix.lists)
-
 for filename in os.listdir(dirinputpath):
     elaboratefile(os.path.join(dirinputpath, filename),os.path.join(diroutputpath, filename))
-
-# elaboratefile(filepath, outputpath)
