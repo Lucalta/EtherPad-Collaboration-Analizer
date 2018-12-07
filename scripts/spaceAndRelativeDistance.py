@@ -1,10 +1,9 @@
 import json
 import os
 
+dirinputpath = "" # Add here the path to the folder with the files to be parsed
+diroutputpath = "" # Add here the path to the output folder with a "Space" and "Time" folder in it
 
-dirinputpath = "C:\\Users\\Luca\\Desktop\\1" # Add here the path to the folder with the files to be parsed
-diroutputpath = "C:\\Users\\Luca\\Desktop\\2" # Add here the path to the output folder
- 
 class Matrix:
 
     @staticmethod
@@ -43,7 +42,7 @@ class Matrix:
         with open(outputpath, "w+") as f:
             for x in self.lists:
                 line = x["distancelist"][0][0]
-                if line-1 > 1:
+                if line > 1:
                     f.write("-1")
                 if line > 2:
                     f.write(",-1" * (line-2))
@@ -95,55 +94,64 @@ class Territory:
         self.inscharacters(self.time, character, 1)
 
 
+def takesecond(elem):
+    return elem['Timestamp']
 
-def elaboratefile(filepath, outputpath):
+
+def elaboratefile(filepath, spaceoutputpath, timeoutputpath):
+
+    edits = []
     with open(filepath) as f:
-
-        spaceterritory = 0
-        spacematrix = Matrix()
-        timeterritory = Territory(0)
-        timematrix = Matrix()
-        counter = 0
-
         for line in f:
-
             if line != "\n":
+                edits.append(json.loads(line.replace("\n", "")))
 
-                counter += 1
-                data = json.loads(line.replace("\n", ""))
+    edits.sort(key=takesecond)
 
-                if spaceterritory == 0:
-                    spaceterritory = Territory(data["preDocLength"])
+    spaceterritory = 0
+    spacematrix = Matrix()
+    timeterritory = Territory(0)
+    timematrix = Matrix()
+    counter = 0
 
-                if "Author" in data:
-                    spacematrix.getauthorid(data["Author"])
-                    authorid = timematrix.getauthorid(data["Author"])
+    for data in edits:
+
+        if data != "\n":
+
+            counter += 1
+
+            if spaceterritory == 0:
+                spaceterritory = Territory(data["preDocLength"])
+
+            if "Author" in data:
+                spacematrix.getauthorid(data["Author"])
+                authorid = timematrix.getauthorid(data["Author"])
+            else:
+                authorid = 0
+
+            start = data["preInterval"][0]
+            end = data["preInterval"][1]
+
+            for i in range(0, spacematrix.getauthorsnumber()):
+
+                if i == authorid:
+                    spacematrix.addistance(i, counter, 0)
+                    timematrix.addistance(i, counter, 0)
                 else:
-                    authorid = 0
+                    spacematrix.addistance(i, counter, spaceterritory.getclosestdistance(spacematrix.getauthorcharacter(i), start, end))
+                    timematrix.addistance(i, counter, timeterritory.getclosestdistance(timematrix.getauthorcharacter(i), counter, counter))
 
-                start = data["preInterval"][0]
-                end = data["preInterval"][1]
+            timeterritory.instime(spacematrix.getauthorcharacter(authorid))
 
-                for i in range(0, spacematrix.getauthorsnumber()):
+            if data["opCode"] == "INS":
+                spaceterritory.inscharacters(start, spacematrix.getauthorcharacter(authorid), data["touchedCharsLength"])
+            elif data["opCode"] == "DEL":
+                spaceterritory.delcharacters(start, end)
+            elif data["opCode"] == "UPD":
+                spaceterritory.updcharacters(start, end, spacematrix.getauthorcharacter(authorid))
 
-                    if i == authorid:
-                        spacematrix.addistance(i, counter, 0)
-                        timematrix.addistance(i, counter, 0)
-                    else:
-                        spacematrix.addistance(i, counter, spaceterritory.getclosestdistance(spacematrix.getauthorcharacter(i), start, end))
-                        timematrix.addistance(i, counter, timeterritory.getclosestdistance(timematrix.getauthorcharacter(i), counter, counter))
-
-                timeterritory.instime(spacematrix.getauthorcharacter(authorid))
-
-                if data["opCode"] == "INS":
-                    spaceterritory.inscharacters(start, spacematrix.getauthorcharacter(authorid), data["touchedCharsLength"])
-                elif data["opCode"] == "DEL":
-                    spaceterritory.delcharacters(start, end)
-                elif data["opCode"] == "UPD":
-                    spaceterritory.updcharacters(start, end, spacematrix.getauthorcharacter(authorid))
-
-        timematrix.printtofile(outputpath + "-time.csv")
-        spacematrix.printtofile(outputpath + "-space.csv")
+    timematrix.printtofile(timeoutputpath.replace(".txt", "##" + str(len(timeterritory.s)) + "##.csv"))
+    spacematrix.printtofile(spaceoutputpath.replace(".txt", "##" + str(len(spaceterritory.s)) + "##.csv"))
 
 for filename in os.listdir(dirinputpath):
-    elaboratefile(os.path.join(dirinputpath, filename),os.path.join(diroutputpath, filename))
+    elaboratefile(os.path.join(dirinputpath, filename), os.path.join(diroutputpath, "Space", filename), os.path.join(diroutputpath, "Time", filename))
